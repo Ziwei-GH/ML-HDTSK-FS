@@ -8,10 +8,9 @@ def norm_grad(con_param, in_dim, out_dim, num_fset, th_r):
     mat_th = torch.cat(mat_list, dim=0)
     mat_norm = torch.norm(mat_th, p=2, dim=0)
 
-    # 找到大于阈值的元素的位置
+    # Find the location of the element that is greater than the threshold
     mask = mat_norm <= th_r
 
-    # 将这些元素除以它们自身的平方
     mat_norm[mask] = (mat_norm[mask] * mat_norm[mask]) / (2 * th_r) + th_r / 2
 
     mat_th = mat_th/mat_norm
