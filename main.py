@@ -20,16 +20,16 @@ def train(in_dim, g, alpha, beta, target_output, gamma, max_iter, th_cor, th_r):
     target_output = target_output.double()
     out_dim = target_output.shape[1]
 
-    # 初始化后件参数矩阵
+    # Initialize the consequent parameter matrix
     g_dim = g.shape[1]
     first = torch.inverse(g.T @ g + gamma * torch.eye(g_dim))
     con_param = first @ g.T @ target_output
     con_param_temp = con_param
 
-    # 计算二值差分矩阵
+    # calculate the binary difference matrix
     R, C = binary_difference(out_dim=out_dim, target_output=target_output, th_cor=th_cor)
 
-    # 计算利普希茨常数
+    # calculate the Lipschitz constant
     Lip = torch.sqrt(2 * (torch.norm(g.T @ g) ** 2 + torch.norm(alpha * (R + C - 1)) ** 2))
 
     b = torch.tensor(1.0)
@@ -50,10 +50,10 @@ def train(in_dim, g, alpha, beta, target_output, gamma, max_iter, th_cor, th_r):
 
         model_output_temp = g @ con_param   # [num_sam,out_dim]
 
-        # 计算损失
+        #  calculate the loss
         loss = my_loss_fun(con_param, model_output_temp, target_output, R, C, alpha, beta)
         loss_his[t] = loss
-        print('第{}次迭代，训练集损失值为：{:.4f}'.format(t, loss.data))
+        print('For the {}th iteration, the training set loss value is: {:.4f}'.format(t, loss.data))
         if t >= 1:
             if loss_his[t-1] - loss_his[t] <= 1.0e-6:
                 break
@@ -61,7 +61,7 @@ def train(in_dim, g, alpha, beta, target_output, gamma, max_iter, th_cor, th_r):
                 break
     model_output = g @ con_param
 
-    # 评价指标
+    # evaluation metrics
     AP, HL, OE, RL, CV = calculate_metrics(model_output=model_output, target_output=target_output)
 
     return con_param, AP, HL, OE, RL, CV
@@ -136,26 +136,22 @@ if __name__ == '__main__':
 
     for i in range(n_run):
 
-        # 划分训练集与测试集
+        # divide the training set and test set
         tra_sam, test_sam, tra_label, test_label = train_test_split(data, label, train_size=0.8)
 
-        # 训练实例化
         con_param, AP, HL, OE, RL, CV = train(in_dim=in_dim, g=tra_sam, alpha=alpha, beta=beta,
                                               target_output=tra_label, gamma=gamma, max_iter=max_iter,
                                               th_cor=th_cor, th_r=th_r)
 
-        # 测试实例化
         test_model_output, test_AP, test_HL, test_OE, test_RL, test_CV \
             = test(g=test_sam, target_output=test_label, con_param=con_param)
 
-        # 训练集评价指标
-        print('第{}轮, 训练集AP: {:.4f}, 测试集AP: {:.4f}'.format(i + 1, AP, test_AP))
-        print('第{}轮, 训练集HL: {:.4f}, 测试集HL: {:.4f}'.format(i + 1, HL, test_HL))
-        print('第{}轮, 训练集OE: {:.4f}, 测试集OE: {:.4f}'.format(i + 1, OE, test_OE))
-        print('第{}轮, 训练集RL: {:.4f}, 测试集RL: {:.4f}'.format(i + 1, RL, test_RL))
-        print('第{}轮, 训练集CV: {:.4f}, 测试集CV: {:.4f}'.format(i + 1, CV, test_CV))
+        print('Round{}, training set AP: {:.4f}, test set AP: {:.4f}'.format(i + 1, AP, test_AP))
+        print('Round{}, training set HL: {:.4f}, test set HL: {:.4f}'.format(i + 1, HL, test_HL))
+        print('Round{}, training set OE: {:.4f}, test set OE: {:.4f}'.format(i + 1, OE, test_OE))
+        print('Round{}, training set RL: {:.4f}, test set RL: {:.4f}'.format(i + 1, RL, test_RL))
+        print('Round{}, training set CV: {:.4f}, test set CV: {:.4f}'.format(i + 1, CV, test_CV))
 
-        # 记录精度
         tra_AP_k_fold[i] = AP
         tra_HL_k_fold[i] = HL
         tra_OE_k_fold[i] = OE
@@ -167,18 +163,18 @@ if __name__ == '__main__':
         test_RL_k_fold[i] = test_RL
         test_CV_k_fold[i] = test_CV
 
-    print('训练集平均精度: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
+    print('Average accuracy of the training set: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
           .format(torch.mean(tra_AP_k_fold), torch.mean(tra_HL_k_fold), torch.mean(tra_OE_k_fold),
                   torch.mean(tra_RL_k_fold), torch.mean(tra_CV_k_fold)))
-    print('测试集平均精度: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
+    print('Average accuracy of the test set: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
           .format(torch.mean(test_AP_k_fold), torch.mean(test_HL_k_fold), torch.mean(test_OE_k_fold),
                   torch.mean(test_RL_k_fold), torch.mean(test_CV_k_fold)))
-    print('测试集精度标准差: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
+    print('Standard deviation of test set accuracy: {:.4f}, {:.4f}, {:.4f}, {:.4f}, {:.4f}'
           .format(np.std(np.array(test_AP_k_fold), ddof=1), np.std(np.array(test_HL_k_fold), ddof=1),
                   np.std(np.array(test_OE_k_fold), ddof=1), np.std(np.array(test_RL_k_fold), ddof=1),
                   np.std(np.array(test_CV_k_fold), ddof=1)))
     print('---------------------------------------------------------------')
-    # 将结果保存到csv文件中
+
     with open(rootpath+'/medical_result.csv', 'a') as f:
         f.write(str(num_fset) + ',' + str(alpha) + ',' + str(beta) + ',' + str(gamma) + ','
                 + str(torch.mean(tra_AP_k_fold)) + ',' + str(torch.mean(tra_HL_k_fold)) + ','
