@@ -7,13 +7,9 @@ def x_g(in_dim, num_fset, model_input, m, c, error, maxiter, power_n):
     n_examples = model_input.shape[0]
     model_input = model_input.double()
 
-    # 计算隶属度值
     center, _, _, _, _, _, _ = cmeans(model_input.T, c=c, m=m, error=error, maxiter=maxiter, init=None)
     center = torch.tensor(center)
 
-    '''
-    计算激活强度
-    '''
     x_e = torch.cat([model_input, torch.ones(n_examples, 1)], 1)
     wt = torch.zeros((n_examples, num_fset), dtype=torch.float64)
     for i in range(num_fset):
